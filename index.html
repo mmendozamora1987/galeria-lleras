@@ -10,64 +10,101 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #000;
     }
 
-    body{
-      display:flex;
-      align-items:center;
-      justify-content:center;
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background:
+        linear-gradient(
+          rgba(0,0,0,.35),
+          rgba(0,0,0,.35)
+        ),
+        url("fondo-institucional.jpg");
+
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
     }
 
     #slide {
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
+      max-width: 94vw;
+      max-height: 92vh;
+
+      object-fit: contain;
+
       display: block;
-      background: #000;
-      transition: opacity 1s ease;
+
+      border-radius: 18px;
+
+      box-shadow:
+        0 18px 45px rgba(0,0,0,.45);
+
+      transition:
+        opacity 1s ease,
+        transform 1s ease;
+
+      opacity: 1;
     }
   </style>
 </head>
 
 <body>
 
-<img id="slide" src="">
+  <img id="slide" src="">
 
-<script>
-  let fotos = [];
-  let actual = 0;
+  <script>
+    let fotos = [];
+    let actual = 0;
 
-  async function cargarFotos() {
-    try {
-      const respuesta = await fetch("fotos.json?nocache=" + Date.now());
-      fotos = await respuesta.json();
+    async function cargarFotos() {
 
-      if (!fotos.length) return;
+      try {
 
-      const slide = document.getElementById("slide");
+        const respuesta = await fetch(
+          "fotos.json?nocache=" + Date.now()
+        );
 
-      slide.src = fotos[0];
+        fotos = await respuesta.json();
 
-      setInterval(() => {
-        actual = (actual + 1) % fotos.length;
+        if (!fotos.length) return;
 
-        slide.style.opacity = 0;
+        const slide = document.getElementById("slide");
 
-        setTimeout(() => {
-          slide.src = fotos[actual];
-          slide.style.opacity = 1;
-        }, 500);
+        slide.src = fotos[0];
 
-      }, 8000);
+        setInterval(() => {
 
-    } catch(error){
-      console.error("Error cargando fotos:", error);
+          actual = (actual + 1) % fotos.length;
+
+          slide.style.opacity = 0;
+          slide.style.transform = "scale(0.98)";
+
+          setTimeout(() => {
+
+            slide.src = fotos[actual];
+
+            slide.style.opacity = 1;
+            slide.style.transform = "scale(1)";
+
+          }, 500);
+
+        }, 8000);
+
+      } catch(error) {
+
+        console.error(
+          "Error cargando fotos:",
+          error
+        );
+
+      }
     }
-  }
 
-  cargarFotos();
-</script>
+    cargarFotos();
+  </script>
 
 </body>
 </html>
