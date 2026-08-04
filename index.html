@@ -1,174 +1,276 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<title>Galería Llerista</title>
+  <meta charset="utf-8">
+  <title>Galería Llerista</title>
 
-<style>
+  <style>
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
 
-html,body{
-    margin:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-}
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-body{
+      background:
+        linear-gradient(
+          rgba(0, 0, 0, 0.35),
+          rgba(0, 0, 0, 0.35)
+        ),
+        url("fondo-institucional.jpg");
 
-    display:flex;
-    justify-content:center;
-    align-items:center;
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+    }
 
-    background:
-    linear-gradient(
-        rgba(0,0,0,.35),
-        rgba(0,0,0,.35)
-    ),
-    url("fondo-institucional.jpg");
+    #contenedor {
+      width: 100%;
+      height: 100%;
 
-    background-position:center;
-    background-size:cover;
-    background-repeat:no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-}
+      position: relative;
+    }
 
-#contenedor{
+    .medio {
+      max-width: 94vw;
+      max-height: 92vh;
 
-    width:100%;
-    height:100%;
+      object-fit: contain;
+      display: block;
 
-    display:flex;
-    justify-content:center;
-    align-items:center;
+      border-radius: 18px;
 
-}
+      box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.45);
 
-#slide{
+      transition:
+        opacity 0.8s ease,
+        transform 0.8s ease;
 
-    max-width:94vw;
-    max-height:92vh;
+      opacity: 0;
+      transform: scale(0.98);
+    }
 
-    object-fit:contain;
+    .medio.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
 
-    border-radius:18px;
-
-    box-shadow:
-    0 18px 45px rgba(0,0,0,.45);
-
-    transition:
-    opacity 1s ease,
-    transform 1s ease;
-
-    opacity:1;
-
-}
-
-video#slide{
-
-    background:black;
-
-}
-
-</style>
-
+    video.medio {
+      background: transparent;
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="contenedor"></div>
+  <div id="contenedor"></div>
 
-<script>
+  <script>
+    let archivos = [];
+    let actual = 0;
+    let temporizadorImagen = null;
 
-let archivos=[];
-let actual=0;
+    const DURACION_IMAGEN = 8000;
 
-const DURACION_IMAGEN=8000;
+    async function cargarGaleria() {
+      try {
+        const respuesta = await fetch(
+          "fotos.json?nocache=" + Date.now()
+        );
 
-async function cargar(){
+        if (!respuesta.ok) {
+          throw new Error(
+            "No se pudo cargar fotos.json: HTTP " +
+            respuesta.status
+          );
+        }
 
-    const r=await fetch(
-        "fotos.json?nocache="+Date.now()
-    );
+        archivos = await respuesta.json();
 
-    archivos=await r.json();
+        if (!Array.isArray(archivos) || archivos.length === 0) {
+          console.warn("No hay archivos en la galería.");
+          return;
+        }
 
-    if(!archivos.length) return;
+        mostrarArchivo(0);
 
-    mostrar(0);
-
-}
-
-function esVideo(ruta){
-
-    return ruta.toLowerCase().endsWith(".mp4");
-
-}
-
-function mostrar(indice){
-
-    actual=indice;
-
-    const ruta=archivos[indice];
-
-    const cont=document.getElementById("contenedor");
-
-    cont.innerHTML="";
-
-    let elemento;
-
-    if(esVideo(ruta)){
-
-        elemento=document.createElement("video");
-
-        elemento.src=ruta;
-
-        elemento.id="slide";
-
-        elemento.autoplay=true;
-
-        elemento.muted=true;
-
-        elemento.playsInline=true;
-
-        elemento.controls=false;
-
-        elemento.onended=siguiente;
-
+      } catch (error) {
+        console.error(
+          "Error cargando la galería:",
+          error
+        );
+      }
     }
 
-    else{
-
-        elemento=document.createElement("img");
-
-        elemento.src=ruta;
-
-        elemento.id="slide";
-
-        setTimeout(siguiente,DURACION_IMAGEN);
-
+    function esVideo(ruta) {
+      return /\.(mp4|webm|ogg)$/i.test(ruta);
     }
 
-    cont.appendChild(elemento);
-
-}
-
-function siguiente(){
-
-    actual++;
-
-    if(actual>=archivos.length){
-
-        actual=0;
-
+    function limpiarTemporizador() {
+      if (temporizadorImagen) {
+        clearTimeout(temporizadorImagen);
+        temporizadorImagen = null;
+      }
     }
 
-    mostrar(actual);
+    function mostrarArchivo(indice) {
+      limpiarTemporizador();
 
-}
+      actual = indice;
 
-cargar();
+      const ruta = archivos[indice];
+      const contenedor = document.getElementById("contenedor");
 
-</script>
+      if (esVideo(ruta)) {
+        mostrarVideo(ruta, contenedor);
+      } else {
+        mostrarImagen(ruta, contenedor);
+      }
+    }
+
+    function mostrarImagen(ruta, contenedor) {
+      const imagen = document.createElement("img");
+
+      imagen.className = "medio";
+      imagen.alt = "Imagen de la galería";
+
+      imagen.onload = () => {
+        reemplazarContenido(contenedor, imagen);
+
+        requestAnimationFrame(() => {
+          imagen.classList.add("visible");
+        });
+
+        temporizadorImagen = setTimeout(
+          siguiente,
+          DURACION_IMAGEN
+        );
+      };
+
+      imagen.onerror = () => {
+        console.error(
+          "No se pudo cargar la imagen:",
+          ruta
+        );
+
+        setTimeout(siguiente, 1500);
+      };
+
+      imagen.src = ruta;
+    }
+
+    function mostrarVideo(ruta, contenedor) {
+      const video = document.createElement("video");
+
+      video.className = "medio";
+
+      video.autoplay = true;
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      video.controls = false;
+      video.preload = "auto";
+
+      video.setAttribute("playsinline", "");
+      video.setAttribute("webkit-playsinline", "");
+      video.setAttribute("muted", "");
+
+      let videoMostrado = false;
+
+      const mostrarCuandoEsteListo = async () => {
+        if (videoMostrado) {
+          return;
+        }
+
+        videoMostrado = true;
+
+        reemplazarContenido(contenedor, video);
+
+        requestAnimationFrame(() => {
+          video.classList.add("visible");
+        });
+
+        try {
+          await video.play();
+        } catch (error) {
+          console.warn(
+            "El navegador demoró el inicio automático:",
+            error
+          );
+        }
+      };
+
+      video.addEventListener(
+        "loadeddata",
+        mostrarCuandoEsteListo,
+        { once: true }
+      );
+
+      video.addEventListener(
+        "canplay",
+        mostrarCuandoEsteListo,
+        { once: true }
+      );
+
+      video.addEventListener(
+        "ended",
+        siguiente,
+        { once: true }
+      );
+
+      video.addEventListener(
+        "error",
+        () => {
+          console.error(
+            "No se pudo cargar el video:",
+            ruta
+          );
+
+          setTimeout(siguiente, 1500);
+        },
+        { once: true }
+      );
+
+      video.src = ruta;
+      video.load();
+    }
+
+    function reemplazarContenido(contenedor, nuevoElemento) {
+      const elementoAnterior = contenedor.firstElementChild;
+
+      if (!elementoAnterior) {
+        contenedor.appendChild(nuevoElemento);
+        return;
+      }
+
+      elementoAnterior.classList.remove("visible");
+
+      setTimeout(() => {
+        contenedor.replaceChildren(nuevoElemento);
+      }, 400);
+    }
+
+    function siguiente() {
+      limpiarTemporizador();
+
+      actual = (actual + 1) % archivos.length;
+
+      mostrarArchivo(actual);
+    }
+
+    cargarGaleria();
+  </script>
 
 </body>
 </html>
